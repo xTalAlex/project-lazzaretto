@@ -1,43 +1,78 @@
-# Astro Starter Kit: Minimal
+# Project Lazzaretto
 
-```sh
-npm create astro@latest -- --template minimal
-```
+## Idee
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+- Il gioco sarà ambientato nel 1600 negli anni della peste.
+- Il protagonista sarà un Medico della Peste.
+- Il gioco conterrà grossi riferimenti ai Promessi Sposi.
+- Lo stile grafico sarà in pixel art.
 
-## 🚀 Project Structure
+## Roadmap di sviluppo
 
-Inside of your Astro project, you'll see the following folders and files:
+Sviluppo a **strati**: validare un livello alla volta prima di passare al successivo.
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+### Fase 0 — Scaffolding minimo
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Obiettivo: vedere un canvas funzionante sulla pagina.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+1. `src/pages/index.astro` monta `<Game client:only="vue" />`.
+2. `src/components/Game.vue` con una `Scene` e un placeholder (rettangolo o testo).
+3. Verifica che `npm run dev` mostri il canvas senza errori.
 
-Any static assets, like images, can be placed in the `public/` directory.
+### Fase 1 — Loop di gioco minimo "giocabile"
 
-## 🧞 Commands
+Obiettivo: un protagonista che si muove in una stanza vuota. Niente arte, niente trama.
 
-All commands are run from the root of the project, from a terminal:
+- **Una scena** `MainScene`.
+- **Un player**: rettangolo/cerchio controllato da WASD o frecce.
+- **Camera** che segue il player.
+- **Collisioni** con i bordi.
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+Questo è il "vertical slice tecnico": conferma che input, fisica e rendering funzionano.
 
-## 👀 Want to learn more?
+### Fase 2 — Asset pipeline
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Obiettivo: capire come caricare e usare sprite/tilemap **prima** di disegnare contenuti veri.
+
+- `PreloadScene` che carica una spritesheet di test.
+- Sostituire il rettangolo del player con uno sprite animato (idle + walk).
+- Caricare una **tilemap** semplice fatta con [Tiled](https://www.mapeditor.org/) (anche 20×20 tile placeholder).
+- Layer di collisione dalla tilemap.
+
+A questo punto si possono aggiungere contenuti senza rifare l'architettura.
+
+### Fase 3 — Prima "stanza" tematica
+
+Obiettivo: tradurre l'idea (Milano 1600, peste) in un primo ambiente giocabile.
+
+- Una piazza/vicolo come tilemap (placeholder grafici anche da [Kenney.nl](https://kenney.nl/assets) free).
+- Il Medico della Peste come player sprite (anche solo silhouette con maschera a becco).
+- 1–2 NPC fermi con cui interagire premendo un tasto → trigger evento.
+
+### Fase 4 — Sistema di dialoghi (UI Vue)
+
+Obiettivo: integrare UI Vue con la scena Phaser. Punto in cui Phavuer dà il massimo.
+
+- Event bus: la scena emette `dialogue:start` con un payload.
+- Componente Vue `<DialogueBox>` nel HUD che ascolta e mostra il testo.
+- Dati dialoghi in `src/game/data/dialogues.ts` (JSON tipizzato).
+- Citazioni dai Promessi Sposi per sceneggiare scene memorabili (l'incontro coi bravi, la madre di Cecilia, ecc.).
+
+### Fase 5 — Meccaniche di core gameplay
+
+Qui si decide **che tipo di gioco** è. Opzioni coerenti col tema:
+
+- **Avventura narrativa 2D** (stile Night in the Woods): esplorazione + dialoghi + scelte.
+- **Action-adventure top-down** (stile Zelda 2D): combattimento contro "untori"/ratti, inventario di rimedi.
+- **Stealth/sopravvivenza**: evitare zone contagiate, gestire risorse (erbe, aceto dei quattro ladri, ecc.).
+- **Gestionale leggero**: curare pazienti, gestire il lazzaretto.
+
+Sceglierne **una** e tenerla piccola: il primo prototipo deve essere completabile in 5 minuti.
+
+## Decisioni di design da fissare
+
+Prima di estendere il codice, rispondere a queste 3 domande — determinano tutta l'architettura:
+
+1. **Prospettiva**: top-down, side-scroller o 2.5D?
+2. **Loop primario**: cosa fa il giocatore per il 70% del tempo? (esplora? dialoga? combatte? gestisce?)
+3. **Condizione di vittoria/fine** del primo livello/prototipo?
