@@ -6,6 +6,7 @@
 - Il protagonista sarà un Medico della Peste.
 - Il gioco conterrà grossi riferimenti ai Promessi Sposi.
 - Lo stile grafico sarà in pixel art.
+- La prospettiva sarà 2.5D.
 
 ## Roadmap di sviluppo
 
@@ -69,10 +70,17 @@ Qui si decide **che tipo di gioco** è. Opzioni coerenti col tema:
 
 Sceglierne **una** e tenerla piccola: il primo prototipo deve essere completabile in 5 minuti.
 
-## Decisioni di design da fissare
+## Decisioni di design
 
-Prima di estendere il codice, rispondere a queste 3 domande — determinano tutta l'architettura:
+### Fissate
 
-1. **Prospettiva**: top-down, side-scroller o 2.5D?
-2. **Loop primario**: cosa fa il giocatore per il 70% del tempo? (esplora? dialoga? combatte? gestisce?)
-3. **Condizione di vittoria/fine** del primo livello/prototipo?
+- **Prospettiva**: **Obliquo / "fake 3D"**.
+  - Vista top-down sul piano logico (X/Y cartesiano, fisica Arcade invariata).
+  - Le pareti e gli elementi verticali sono disegnati in prospettiva *dentro* lo sprite stesso (alla *EarthBound*, *Pokémon* GBA).
+  - Y-sorting opzionale per personaggi/oggetti che passano davanti/dietro a mobili.
+  - Implicazione asset: sprite dei muri/edifici realizzati con facciata frontale visibile, tile in 2 strati (pavimento + decor alto).
+
+### Da fissare
+
+1. **Loop primario**: cosa fa il giocatore per il 70% del tempo? (esplora? dialoga? combatte? gestisce?)
+2. **Condizione di vittoria/fine** del primo livello/prototipo?
