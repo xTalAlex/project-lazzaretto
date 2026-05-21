@@ -1,18 +1,23 @@
 ---
-import Game from "../components/Game.vue";
+import Game from "@src/components/Game.vue";
+
+import { siteConfig } from "@src/site.config";
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
+
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <title>Project Lazzaretto</title>
+
+    <title>{siteConfig.title}</title>
   </head>
   <body>
-    <h1>Project Lazzaretto</h1>
+    <h1>{siteConfig.title}</h1>
 
     <Game client:only="vue" />
   </body>
