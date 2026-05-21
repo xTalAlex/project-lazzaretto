@@ -1,12 +1,13 @@
 <template>
-  <Game :config="gameConfig">
-    <Scene name="MainScene">
-      <Rectangle :x="100" :y="100" :width="100" :height="100" :fillColor="0x000000" />
-    </Scene>
-  </Game>
+  <div class="w-full aspect-video">
+    <Game :config="gameConfig">
+      <MainScene />
+    </Game>
+  </div>
 </template>
 
 <script setup lang="ts">
-    import { Game, Scene, Rectangle } from 'phavuer';
-    const gameConfig = { width: 960, height: 540 }
+    import { Game } from 'phavuer';
+    import MainScene from '@src/game/scenes/MainScene.vue';
+    import gameConfig from '@src/game/config';
 </script>

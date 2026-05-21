@@ -19,9 +19,9 @@ import { siteConfig } from "@src/site.config";
     <title>{siteConfig.title}</title>
   </head>
   <body class="font-sans bg-neutral-50 text-black">
-    <h1 class="mt-12 text-center text-xl font-bold">{siteConfig.title}</h1>
+    <h1 class="mt-12 text-center text-2xl font-bold">{siteConfig.title}</h1>
 
-    <div class="mt-12 max-w-5xl mx-auto grid place-items-center">
+    <div class="mx-auto w-full max-w-7xl my-12 px-4">
       <Game client:only="vue" />
     </div>
   </body>
