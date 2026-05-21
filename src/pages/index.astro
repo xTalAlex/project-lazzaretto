@@ -1,4 +1,6 @@
 ---
+import "../styles/global.css";
+
 import Game from "@src/components/Game.vue";
 
 import { siteConfig } from "@src/site.config";
@@ -16,9 +18,11 @@ import { siteConfig } from "@src/site.config";
 
     <title>{siteConfig.title}</title>
   </head>
-  <body>
-    <h1>{siteConfig.title}</h1>
+  <body class="font-sans bg-neutral-50 text-black">
+    <h1 class="mt-12 text-center text-xl font-bold">{siteConfig.title}</h1>
 
-    <Game client:only="vue" />
+    <div class="mt-12 max-w-5xl mx-auto grid place-items-center">
+      <Game client:only="vue" />
+    </div>
   </body>
 </html>

@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@astrojs/vue": "^6.0.1",
+    "@tailwindcss/vite": "^4.3.0",
     "astro": "^6.3.5",
     "phavuer": "^0.21.0",
+    "tailwindcss": "^4.3.0",
     "vue": "^3.5.34"
   }
 }

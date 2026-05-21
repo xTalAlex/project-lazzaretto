@@ -1,7 +1,7 @@
 <template>
   <Game :config="gameConfig">
     <Scene name="MainScene">
-      <Rectangle :x="100" :y="100" :width="100" :height="100" :fillColor="0xAAAAAA" />
+      <Rectangle :x="100" :y="100" :width="100" :height="100" :fillColor="0x000000" />
     </Scene>
   </Game>
 </template>
