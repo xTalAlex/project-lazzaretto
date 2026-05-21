@@ -12,24 +12,13 @@
 
 Sviluppo a **strati**: validare un livello alla volta prima di passare al successivo.
 
-### Fase 0 — Scaffolding minimo
+### ~~Fase 0 — Scaffolding minimo~~ ✅
 
-Obiettivo: vedere un canvas funzionante sulla pagina.
+~~Canvas Phaser montato in pagina via `<Game client:only="vue" />` + `src/components/Game.vue`.~~
 
-1. `src/pages/index.astro` monta `<Game client:only="vue" />`.
-2. `src/components/Game.vue` con una `Scene` e un placeholder (rettangolo o testo).
-3. Verifica che `npm run dev` mostri il canvas senza errori.
+### ~~Fase 1 — Loop di gioco minimo "giocabile"~~ ✅
 
-### Fase 1 — Loop di gioco minimo "giocabile"
-
-Obiettivo: un protagonista che si muove in una stanza vuota. Niente arte, niente trama.
-
-- **Una scena** `MainScene`.
-- **Un player**: rettangolo/cerchio controllato da WASD o frecce.
-- **Camera** che segue il player.
-- **Collisioni** con i bordi.
-
-Questo è il "vertical slice tecnico": conferma che input, fisica e rendering funzionano.
+~~`MainScene` con player rettangolare, movimento WASD/frecce, fisica Arcade, world 1280×720, camera che segue, collisione con i bordi. Vertical slice tecnico completato.~~
 
 ### Fase 2 — Asset pipeline
 
@@ -96,7 +85,7 @@ Sceglierne **una** e tenerla piccola: il primo prototipo deve essere completabil
 
 ### Architettura tecnica
 
-- **Astro** come framework della pagina; **Phavuer** come layer Vue per Phaser; **Phaser 3** come motore.
+- **Astro** come framework della pagina; **Phavuer** come layer Vue per Phaser; **Phaser 4** come motore.
 - **Approccio Phavuer-first**: scene ed entità si scrivono come **componenti Vue** (SFC) con template dichiarativi e composable per la logica. Niente classi `extends Phaser.Scene`.
 - **Phaser puro come fallback chirurgico**: quando Phavuer non copre un'API (es. tilemap, particles, shader) si scende all'API imperativa Phaser **dentro un composable** via `useScene()`. Non si espone mai Phaser puro al template.
 - Struttura cartelle:
@@ -113,6 +102,17 @@ Sceglierne **una** e tenerla piccola: il primo prototipo deve essere completabil
     - `src/components/DesktopOnly.vue` → fallback per viewport sotto soglia desktop (futuro).
 - Regola: la separazione `game/` vs `components/` segue il **dominio**, non la **tecnologia**. Un `DialogueBox` Tailwind è dominio di gioco e sta in `src/game/ui/`, non in `src/components/`.
 - Test mentale: "se domani buttassi via Astro e mettessi il gioco dentro Electron o un iframe, cosa porterei con me?" → tutto `src/game/` viaggia, `src/components/` no.
+
+### Input — schema ibrido (da implementare dopo Fase 1 / camera follow)
+
+- **Tastiera (WASD + frecce)**: controllo diretto, sempre disponibile.
+- **Click-to-move**: clic su un punto del mondo → il player ci cammina da solo (usa `pointer.worldX/Y`, coerente con la camera).
+- **Regola di precedenza**: input da tastiera **annulla** il target del click in corso. Il click imposta un nuovo target solo se la tastiera è rilasciata.
+- **Riferimenti** per questo schema ibrido in 2D/2.5D narrativo:
+  - _Pentiment_ (Obsidian, 2022) — ambientazione storica, click + WASD.
+  - _Disco Elysium_ — click-to-move principale, WASD aggiunto in patch.
+  - _Diablo_ / _Path of Exile_ moderni — stesso pattern.
+- Click-to-move ha senso solo dopo che esiste la **camera follow** (Fase 1 / Step 5), perché `pointer.worldX` ha significato solo con coordinate-mondo separate da coordinate-schermo.
 
 ### Da fissare
 
