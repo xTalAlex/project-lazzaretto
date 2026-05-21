@@ -8,6 +8,6 @@
 
 <script setup lang="ts">
 import { Game } from "phavuer";
-import MainScene from "@src/game/scenes/MainScene.vue";
-import gameConfig from "@src/game/config";
+import MainScene from "@game/scenes/MainScene.vue";
+import gameConfig from "@game/config";
 </script>
