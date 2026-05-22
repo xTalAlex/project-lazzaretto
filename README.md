@@ -24,10 +24,39 @@ Sviluppo a **strati**: validare un livello alla volta prima di passare al succes
 
 Obiettivo: capire come caricare e usare sprite/tilemap **prima** di disegnare contenuti veri.
 
-- `PreloadScene` che carica una spritesheet di test.
-- Sostituire il rettangolo del player con uno sprite animato (idle + walk).
-- Caricare una **tilemap** semplice fatta con [Tiled](https://www.mapeditor.org/) (anche 20×20 tile placeholder).
-- Layer di collisione dalla tilemap.
+Spezzata in mini-step incrementali; ognuno è un vertical slice tecnico verificabile a schermo prima di passare al successivo.
+
+#### Mini-step 2.1 — Sprite statico del player
+
+- Asset PNG **32×48** in `public/assets/player.png` (placeholder qualsiasi).
+- In `MainScene.vue` aggiungere handler `@preload` su `<Scene>` che chiama `scene.load.image('player', '/assets/player.png')`. NON serve una `PreloadScene` separata: phavuer espone `@preload` come evento su qualsiasi `<Scene>` (sorgente: `node_modules/phavuer/src/components/Scene.vue`). PreloadScene avrà senso solo quando gli asset cresceranno e servirà una progress bar.
+- In `Player.vue` sostituire `<Rectangle>` con `<Sprite :texture="'player'" :x="640" :y="360" @create="onCreate">`. Togliere `width/height/fillColor` (lo Sprite prende dimensione dalla texture).
+- Aggiornare il tipo del callback `onCreate` da `GameObjects.Rectangle` a `GameObjects.Sprite`. Tutta la logica esistente (`startFollow`, collider con `ObstacleGroup`) resta identica.
+- Su `<Body>` passare esplicitamente `:width="32" :height="48"` per robustezza (non dipendere dall'inferenza dalla texture).
+- Vincoli: URL servito da Astro (`/assets/...`, non `/public/...`); `load.image` solo dentro `@preload`; non usare `import` bundler per l'asset.
+- Verifica: il player è una PNG, si muove, collide con i bordi del mondo e con gli ostacoli marroni.
+
+#### Mini-step 2.2 — Animazioni idle + walk
+
+- Spritesheet (es. 4 direzioni × N frame) in `public/assets/player.png` caricato con `scene.load.spritesheet('player', url, { frameWidth: 32, frameHeight: 48 })`.
+- Definire animazioni Phaser in `@create` della scena con `scene.anims.create({ key, frames, frameRate, repeat })` (es. `idle-down`, `walk-down`, ecc.).
+- In `Player.vue` selezionare animazione in base a velocità+direzione (computed o effect su `velocityX/Y`) e usarla via prop `:play="animKey"` di `<Sprite>`.
+- Vincoli: registrare animazioni in `scene.anims` (globali), non sull'oggetto Sprite. La prop `play` di phavuer è reattiva.
+
+#### Mini-step 2.3 — Tilemap statica (no collisioni)
+
+- Mappa fatta in [Tiled](https://www.mapeditor.org/), esportata come JSON in `public/assets/maps/test.json` + tileset PNG in `public/assets/tilesets/`.
+- In `@preload`: `scene.load.tilemapTiledJSON('map', '/assets/maps/test.json')` + `scene.load.image('tileset', '/assets/tilesets/x.png')`.
+- In `@create` (imperativo, fallback Phaser puro — phavuer ha `<TilemapLayer>` ma il `Tilemap` stesso si crea via `scene.make.tilemap`): `const map = scene.make.tilemap({ key: 'map' }); const ts = map.addTilesetImage('nome-in-tiled', 'tileset'); const ground = map.createLayer('Ground', ts, 0, 0)`.
+- Aggiornare `WORLD_W/H` per matchare la dimensione della mappa (`map.widthInPixels`, `map.heightInPixels`) e usare quelli per world/camera bounds.
+- Rimuovere i 5 `<Rectangle>` landmark di placeholder dalla scena.
+
+#### Mini-step 2.4 — Collision layer dalla tilemap
+
+- In Tiled: layer "Walls" o property `collides: true` sui tile dei muri.
+- In `@create`: `wallsLayer.setCollisionByProperty({ collides: true })` (o per layer dedicato).
+- Collider: `scene.physics.add.collider(playerRect, wallsLayer)`. Decidere se mantenere anche l'`ObstacleGroup` per ostacoli dinamici o eliminarlo (per ora la tilemap copre il 100% del caso → eliminare gli ostacoli `<Rectangle><StaticBody/></Rectangle>` dummy di Fase 1).
+- Verifica: il player non attraversa i muri della tilemap.
 
 A questo punto si possono aggiungere contenuti senza rifare l'architettura.
 
