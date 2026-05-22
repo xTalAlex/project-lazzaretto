@@ -16,12 +16,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, inject } from "vue";
 import { Rectangle, Body, useScene, onPreUpdate } from "phavuer";
 import Phaser from "phaser";
+import { ObstacleGroupKey } from "@game/types";
 
 const SPEED = 130;
 const scene = useScene();
+const obstacleGroup = inject(ObstacleGroupKey);
 
 const velocityX = ref(0);
 const velocityY = ref(0);
@@ -40,6 +42,10 @@ const onCreate = (rect: Phaser.GameObjects.Rectangle) => {
     keys = scene.input.keyboard.addKeys("W,A,S,D") as NonNullable<typeof keys>;
   }
   scene.cameras.main.startFollow(rect, true, 1, 1);
+
+  if (obstacleGroup?.value) {
+    scene.physics.add.collider(rect, obstacleGroup.value);
+  }
 };
 
 onPreUpdate(() => {
