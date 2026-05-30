@@ -3,8 +3,8 @@ import Phaser from "phaser";
 const tailwindStyles = getComputedStyle(document.documentElement);
 
 export const gameConfig = {
-  width: 480,
-  height: 270,
+  width: 960,
+  height: 540,
   pixelArt: true,
   roundPixels: true,
   antialias: false,
@@ -16,7 +16,7 @@ export const gameConfig = {
   physics: {
     default: "arcade",
     arcade: {
-      debug: true,
+      debug: false,
       gravity: { x: 0, y: 0 }, // No gravity for a top-down game
     },
   },

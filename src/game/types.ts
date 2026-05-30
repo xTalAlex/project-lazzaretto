@@ -1,10 +1,10 @@
 import type { InjectionKey, ShallowRef } from "vue";
-import type { GameObjects } from "phaser";
+import type { GameObjects, Tilemaps } from "phaser";
 
 // ---------------------------------------------------------------------------
 // Vue InjectionKey — shared state across scene/entities
 // ---------------------------------------------------------------------------
 
-export const ObstacleGroupKey: InjectionKey<
-  ShallowRef<GameObjects.Group | null>
-> = Symbol("ObstacleGroup");
+export const WallsLayerKey: InjectionKey<
+  ShallowRef<Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer | null>
+> = Symbol("WallsLayer");

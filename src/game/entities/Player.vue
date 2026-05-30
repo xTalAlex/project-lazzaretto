@@ -1,13 +1,18 @@
 <template>
-  <Sprite texture="player" :play="animKey" :x="480" :y="270" @create="onCreate">
+  <Sprite
+    texture="player"
+    :play="animKey"
+    :x="960"
+    :y="540"
+    @create="onSpriteCreate"
+  >
     <Body
       :width="32"
       :height="24"
       :offsetX="8"
       :offsetY="40"
-      :velocityX="velocityX"
-      :velocityY="velocityY"
       :collideWorldBounds="true"
+      @create="onBodyCreate"
     />
   </Sprite>
 </template>
@@ -16,16 +21,14 @@
 import { ref, inject, computed } from "vue";
 import { Sprite, Body, useScene, onPreUpdate } from "phavuer";
 import Phaser from "phaser";
-import { ObstacleGroupKey } from "@game/types";
+import { WallsLayerKey } from "@game/types";
 
-const SPEED = 130;
+const SPEED = 250;
 const scene = useScene();
-const obstacleGroup = inject(ObstacleGroupKey);
-
-const velocityX = ref(0);
-const velocityY = ref(0);
+const wallsLayer = inject(WallsLayerKey);
 
 const facing = ref<"down" | "up" | "left" | "right">("down");
+const moving = ref(false);
 
 let cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
 let keys: {
@@ -34,26 +37,31 @@ let keys: {
   S: Phaser.Input.Keyboard.Key;
   D: Phaser.Input.Keyboard.Key;
 } | null = null;
+let playerSprite: Phaser.GameObjects.Sprite | null = null;
+let playerBody: Phaser.Physics.Arcade.Body | null = null;
 
-const animKey = computed(() => {
-  const moving = velocityX.value !== 0 || velocityY.value !== 0;
-  return `${moving ? "walk" : "idle"}-${facing.value}`;
-});
+const animKey = computed(
+  () => `${moving.value ? "walk" : "idle"}-${facing.value}`,
+);
 
-const onCreate = (sprite: Phaser.GameObjects.Sprite) => {
+const onSpriteCreate = (sprite: Phaser.GameObjects.Sprite) => {
+  playerSprite = sprite;
   if (scene.input.keyboard) {
     cursors = scene.input.keyboard.createCursorKeys();
     keys = scene.input.keyboard.addKeys("W,A,S,D") as NonNullable<typeof keys>;
   }
   scene.cameras.main.startFollow(sprite, true, 1, 1);
+};
 
-  if (obstacleGroup?.value) {
-    scene.physics.add.collider(sprite, obstacleGroup.value);
+const onBodyCreate = (body: Phaser.Physics.Arcade.Body) => {
+  playerBody = body;
+  if (playerSprite && wallsLayer?.value) {
+    scene.physics.add.collider(playerSprite, wallsLayer.value);
   }
 };
 
 onPreUpdate(() => {
-  if (cursors && keys) {
+  if (cursors && keys && playerBody) {
     const left = cursors.left?.isDown || keys.A.isDown;
     const right = cursors.right?.isDown || keys.D.isDown;
     const up = cursors.up?.isDown || keys.W.isDown;
@@ -65,8 +73,8 @@ onPreUpdate(() => {
     );
     if (vec.length() > 0) vec.normalize();
 
-    velocityX.value = vec.x * SPEED;
-    velocityY.value = vec.y * SPEED;
+    playerBody.setVelocity(vec.x * SPEED, vec.y * SPEED);
+    moving.value = vec.length() > 0;
 
     // Diagonal movement makes facing sideways
     if (vec.x < 0) facing.value = "left";

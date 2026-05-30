@@ -20,7 +20,7 @@ Sviluppo a **strati**: validare un livello alla volta prima di passare al succes
 
 ~~`MainScene` con player rettangolare, movimento WASD/frecce, fisica Arcade, world 1280×720, camera che segue, collisione con i bordi. Vertical slice tecnico completato.~~
 
-### Fase 2 — Asset pipeline
+### Fase 2 — Asset pipeline ✅
 
 Obiettivo: capire come caricare e usare sprite/tilemap **prima** di disegnare contenuti veri.
 
@@ -31,37 +31,45 @@ Spezzata in mini-step incrementali; ognuno è un vertical slice tecnico verifica
 - [itch.io / Game Assets](https://itch.io/game-assets) — marketplace, molto free + "name your price".
 - [OpenGameArt.org](https://opengameart.org/) — tutto free, licenze CC, qualità variabile.
 
-#### Mini-step 2.1 — Sprite statico del player
+#### ~~Mini-step 2.1 — Sprite statico del player~~ ✅
 
 - Asset PNG **48×64** in `public/assets/player.png` (placeholder qualsiasi, anche un frame ritagliato da uno spritesheet).
 - In `MainScene.vue` aggiungere handler `@preload` su `<Scene>` che chiama `scene.load.image('player', '/assets/player.png')`. NON serve una `PreloadScene` separata: phavuer espone `@preload` come evento su qualsiasi `<Scene>` (sorgente: `node_modules/phavuer/src/components/Scene.vue`). PreloadScene avrà senso solo quando gli asset cresceranno e servirà una progress bar.
-- In `Player.vue` sostituire `<Rectangle>` con `<Sprite :texture="'player'" :x="240" :y="135" @create="onCreate">` (centro del canvas 480×270). Togliere `width/height/fillColor` (lo Sprite prende dimensione dalla texture).
+- In `Player.vue` sostituire `<Rectangle>` con `<Sprite :texture="'player'" :x="480" :y="270" @create="onCreate">` (centro del canvas all'epoca 480×270; nota: dal 2.3 il regime è 960×540 → spawn a 960×540).
 - Aggiornare il tipo del callback `onCreate` da `GameObjects.Rectangle` a `GameObjects.Sprite`. Tutta la logica esistente (`startFollow`, collider con `ObstacleGroup`) resta identica.
 - Su `<Body>` passare esplicitamente `:width="32" :height="24"` con `:offsetY="40"` per avere il body fisico sui piedi (32×24 invece di 48×64). Pattern standard per top-down 2.5D: la collisione è il "basamento" del personaggio, non tutto il suo ingombro visivo.
 - Vincoli: URL servito da Astro (`/assets/...`, non `/public/...`); `load.image` solo dentro `@preload`; non usare `import` bundler per l'asset.
 - Verifica: il player è una PNG, si muove, collide con i bordi del mondo e con gli ostacoli marroni.
 
-#### Mini-step 2.2 — Animazioni idle + walk
+#### ~~Mini-step 2.2 — Animazioni idle + walk~~ ✅
 
 - Spritesheet (es. 4 direzioni × N frame) in `public/assets/player.png` caricato con `scene.load.spritesheet('player', url, { frameWidth: 48, frameHeight: 64 })`.
 - Definire animazioni Phaser in `@create` della scena con `scene.anims.create({ key, frames, frameRate, repeat })` (es. `idle-down`, `walk-down`, ecc.).
 - In `Player.vue` selezionare animazione in base a velocità+direzione (computed o effect su `velocityX/Y`) e usarla via prop `:play="animKey"` di `<Sprite>`.
 - Vincoli: registrare animazioni in `scene.anims` (globali), non sull'oggetto Sprite. La prop `play` di phavuer è reattiva.
 
-#### Mini-step 2.3 — Tilemap statica (no collisioni)
+#### ~~Mini-step 2.3 — Tilemap statica (no collisioni)~~ ✅
 
-- Mappa fatta in [Tiled](https://www.mapeditor.org/), esportata come JSON in `public/assets/maps/test.json` + tileset PNG in `public/assets/tilesets/`.
-- In `@preload`: `scene.load.tilemapTiledJSON('map', '/assets/maps/test.json')` + `scene.load.image('tileset', '/assets/tilesets/x.png')`.
-- In `@create` (imperativo, fallback Phaser puro — phavuer ha `<TilemapLayer>` ma il `Tilemap` stesso si crea via `scene.make.tilemap`): `const map = scene.make.tilemap({ key: 'map' }); const ts = map.addTilesetImage('nome-in-tiled', 'tileset'); const ground = map.createLayer('Ground', ts, 0, 0)`.
+- **Cambio di regime**: con tileset 48×48 (asset di `public/assets/v0/medieval-village/`) si è passati da 480×270/tile 24 a **960×540/tile 48**. `WORLD_W/H` resta `gameConfig × 2 = 1920×1080`. Speed player 130 → 250 px/s per coerenza percettiva.
+- Mappa fatta in [Tiled](https://www.mapeditor.org/), esportata come JSON in `public/assets/v0/maps/test.tmj` + tileset PNG già in `public/assets/v0/medieval-village/`.
+- In `@preload`: `scene.load.tilemapTiledJSON('map', assetUrl('maps/test.tmj'))` + `scene.load.image('tileset-ground', assetUrl('medieval-village/ground.png'))` (uno per ogni tileset usato).
+- In `@create` (imperativo, fallback Phaser puro — phavuer ha `<TilemapLayer>` ma il `Tilemap` stesso si crea via `scene.make.tilemap`): `const map = scene.make.tilemap({ key: 'map' }); const ts = map.addTilesetImage('nome-in-tiled', 'tileset-ground'); const ground = map.createLayer('Ground', ts, 0, 0)`.
 - Aggiornare `WORLD_W/H` per matchare la dimensione della mappa (`map.widthInPixels`, `map.heightInPixels`) e usare quelli per world/camera bounds.
-- Rimuovere i 5 `<Rectangle>` landmark di placeholder dalla scena.
+- Rimuovere i 3 `<Rectangle>` ostacoli placeholder dalla scena.
 
-#### Mini-step 2.4 — Collision layer dalla tilemap
+**Gotcha imparato in Fase 2.2** (ordine di mount Phavuer): i `@create` dei figli `<Scene>` scattano **prima** del `@create` della scena (regola Vue: child `onMounted` precede parent `onMounted`). Conseguenza: stato condiviso che i figli usano nel loro `@create` (es. `Group` per collider, `provide` di gruppi/refs) DEVE essere inizializzato nell'handler `@preload` della scena, non in `@create`. Sintomo classico se sbagli: `group.getLength() === 0` benché ci siano figli che fanno `group.add(rect)` al `@create`.
 
-- In Tiled: layer "Walls" o property `collides: true` sui tile dei muri.
-- In `@create`: `wallsLayer.setCollisionByProperty({ collides: true })` (o per layer dedicato).
-- Collider: `scene.physics.add.collider(playerRect, wallsLayer)`. Decidere se mantenere anche l'`ObstacleGroup` per ostacoli dinamici o eliminarlo (per ora la tilemap copre il 100% del caso → eliminare gli ostacoli `<Rectangle><StaticBody/></Rectangle>` dummy di Fase 1).
-- Verifica: il player non attraversa i muri della tilemap.
+**Corollario imparato in Fase 2.4** (mount tra fratelli template): anche dentro un singolo entity SFC, il `@create` del parent GameObject (es. `<Sprite>`) scatta **prima** del mount dei figli `<Body>`. Quindi `sprite.body` è `null` dentro l'handler `@create` dello Sprite. Soluzione idiomatica: usare `@create` direttamente sul `<Body>` per le cose che richiedono il body (es. `physics.add.collider`). Lo Sprite si tiene in una var di modulo (`playerSprite`) per riferirlo dal callback del body.
+
+#### ~~Mini-step 2.4 — Collision layer dalla tilemap~~ ✅
+
+- In Tiled: layer "Walls" dedicato. **Phaser 4 NON supporta tileset esterni `.tsx`** → Tiled deve esportare con tileset embedded (menu Map → Convert / oppure right-click tileset → "Embed Tileset").
+- In `@create`: `wallsLayer.setCollisionByExclusion([-1])` (tutti i tile presenti collidono).
+- Collider: `scene.physics.add.collider(sprite, wallsLayer)` registrato **dentro il `@create` del `<Body>`** (vedi corollario sopra). Lo si fa con un `provide`/`inject` del `wallsLayer` dalla scena al Player via `InjectionKey` tipizzato.
+- **Tipi**: `map.createLayer()` ritorna `TilemapLayer | TilemapGPULayer | null`. Per il narrowing TS: `const layer = map.createLayer(...); if (layer) { ... }` (TypeScript non restringe `.value` di un `ShallowRef`).
+- **Attenzione**: un `TilemapLayer` NON funziona se messo in un `physics.add.collider(sprite, group)` insieme ad altri sprite — il group itera i `body` dei membri, ma `TilemapLayer` non ha `body` (collide per-tile). Va passato DIRETTAMENTE al collider come secondo argomento.
+- **Movimento + collisioni**: NON usare le prop reattive `:velocityX/Y` di Phavuer. Il watch fa fire solo quando il ref cambia valore; se il body viene azzerato da una collisione ma il ref resta uguale (es. tasto premuto contro un muro su un asse, libero sull'altro → diagonale rotta), il watch non rifire. Soluzione: in `onPreUpdate` chiamare direttamente `body.setVelocity(vx, vy)` ogni frame.
+- Verifica: il player non attraversa i muri della tilemap, il movimento diagonale lungo un muro funziona.
 
 A questo punto si possono aggiungere contenuti senza rifare l'architettura.
 
@@ -105,11 +113,11 @@ Sceglierne **una** e tenerla piccola: il primo prototipo deve essere completabil
 
 - **Riferimento estetico principale**: **Eastward** (Pixpil, 2021).
   - Pixel art ad alto dettaglio, palette ricca (non limitata stile NES), shading "painterly".
-  - Sprite personaggio alti ~3 tile (player **48×64** px su tile **24×24**).
+  - Sprite personaggio alti ~1.3 tile (player **48×64** px su tile **48×48**). Visivamente più piccolo che in Eastward — tradeoff accettato per avere più tile visibili a schermo.
   - Atmosfere notturne, illuminazione localizzata, profondità tramite Y-sorting.
 
-- **Risoluzione logica**: **480×270** (16:9, ×4 = 1920×1080 pixel-perfect; ×2 = 960×540, ×3 = 1440×810). Stesso regime di Eastward, Sea of Stars, Hyper Light Drifter. Più web-friendly di 640×360 perché multiplo intero di tutte le risoluzioni desktop comuni.
-- **Tile size**: **24×24** px.
+- **Risoluzione logica**: **960×540** (16:9, ×2 = 1920×1080 pixel-perfect; ×1 = 960×540 finestra piccola, ×3 = 2880×1620 4K-ish). Scelta dopo aver adottato tileset 48×48 (cambio regime in Fase 2.3): a 480×270 si vedevano solo 10×5.6 tile, troppo stretto; a 960×540 si vedono 20×11.25 tile, comodo per esplorazione tipo Stardew/RPG classico. NON è più allineato a Eastward (che usa 480×270 con tile 16); è più vicino al regime di Stardew Valley.
+- **Tile size**: **48×48** px (aderente agli asset reali di `public/assets/v0/medieval-village/`). Prima era 24×24, cambiato con il regime.
 - **Player size (placeholder e finale)**: **48×64** px.
 - **Pixel art rendering**: `pixelArt: true` in Phaser, nessun antialiasing.
 

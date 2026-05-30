@@ -5,46 +5,27 @@
     @create="onSceneCreate"
     v-slot="{ preloaded }"
   >
-    <Rectangle
-      v-for="(o, i) in obstacles"
-      :key="i"
-      :x="o.x"
-      :y="o.y"
-      :width="o.width"
-      :height="o.height"
-      :fillColor="0x6b4423"
-      @create="addToObstacleGroup"
-    >
-      <StaticBody />
-    </Rectangle>
-
     <Player v-if="preloaded" />
   </Scene>
 </template>
 
 <script setup lang="ts">
 import { shallowRef, provide } from "vue";
-import { Scene, Rectangle, StaticBody } from "phavuer";
-import type { GameObjects, Scene as PhaserScene } from "phaser";
+import { Scene } from "phavuer";
+import type { GameObjects, Tilemaps, Scene as PhaserScene } from "phaser";
 import Player from "@game/entities/Player.vue";
-import gameConfig from "@game/config";
-import { ObstacleGroupKey } from "@game/types";
+import { WallsLayerKey } from "@game/types";
 import { assetUrl } from "@game/assets";
 
-const WORLD_W = gameConfig.width * 2;
-const WORLD_H = gameConfig.height * 2;
-
-const obstacleGroup = shallowRef<GameObjects.Group | null>(null);
-provide(ObstacleGroupKey, obstacleGroup);
-
-const obstacles = [
-  { x: 400, y: 220, width: 200, height: 32 },
-  { x: 880, y: 500, width: 32, height: 200 },
-  { x: 240, y: 480, width: 64, height: 64 },
-];
+const wallsLayer = shallowRef<
+  Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer | null
+>(null);
+provide(WallsLayerKey, wallsLayer);
 
 const onScenePreload = (scene: PhaserScene) => {
-  obstacleGroup.value = scene.add.group();
+  scene.load.image("tiles-ground", assetUrl("medieval-village/ground.png"));
+  scene.load.image("tiles-wall", assetUrl("medieval-village/wall.png"));
+  scene.load.tilemapTiledJSON("map0", assetUrl("maps/map0.tmj"));
   scene.load.spritesheet("player", assetUrl("player.png"), {
     frameWidth: 48,
     frameHeight: 64,
@@ -52,8 +33,18 @@ const onScenePreload = (scene: PhaserScene) => {
 };
 
 const onSceneCreate = (scene: PhaserScene) => {
-  scene.physics.world.setBounds(0, 0, WORLD_W, WORLD_H);
-  scene.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+  const map = scene.make.tilemap({ key: "map0" });
+
+  const groundTs = map.addTilesetImage("ground", "tiles-ground");
+  if (groundTs) map.createLayer("Ground", groundTs, 0, 0);
+
+  const wallTs = map.addTilesetImage("wall", "tiles-wall");
+  if (wallTs) {
+    wallsLayer.value = map.createLayer("Walls", wallTs, 0, 0);
+    wallsLayer.value.setCollisionByExclusion([-1]);
+  }
+  scene.physics.world.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+  scene.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
 
   const directions = ["up", "right", "down", "left"] as const;
   directions.forEach((dir, row) => {
@@ -73,9 +64,5 @@ const onSceneCreate = (scene: PhaserScene) => {
       repeat: -1,
     });
   });
-};
-
-const addToObstacleGroup = (rect: GameObjects.Rectangle) => {
-  obstacleGroup.value?.add(rect);
 };
 </script>
