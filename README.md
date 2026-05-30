@@ -26,19 +26,24 @@ Obiettivo: capire come caricare e usare sprite/tilemap **prima** di disegnare co
 
 Spezzata in mini-step incrementali; ognuno è un vertical slice tecnico verificabile a schermo prima di passare al successivo.
 
+**Dove cercare asset** (pixel art, top-down, free o paid):
+
+- [itch.io / Game Assets](https://itch.io/game-assets) — marketplace, molto free + "name your price".
+- [OpenGameArt.org](https://opengameart.org/) — tutto free, licenze CC, qualità variabile.
+
 #### Mini-step 2.1 — Sprite statico del player
 
-- Asset PNG **32×48** in `public/assets/player.png` (placeholder qualsiasi).
+- Asset PNG **48×64** in `public/assets/player.png` (placeholder qualsiasi, anche un frame ritagliato da uno spritesheet).
 - In `MainScene.vue` aggiungere handler `@preload` su `<Scene>` che chiama `scene.load.image('player', '/assets/player.png')`. NON serve una `PreloadScene` separata: phavuer espone `@preload` come evento su qualsiasi `<Scene>` (sorgente: `node_modules/phavuer/src/components/Scene.vue`). PreloadScene avrà senso solo quando gli asset cresceranno e servirà una progress bar.
-- In `Player.vue` sostituire `<Rectangle>` con `<Sprite :texture="'player'" :x="640" :y="360" @create="onCreate">`. Togliere `width/height/fillColor` (lo Sprite prende dimensione dalla texture).
+- In `Player.vue` sostituire `<Rectangle>` con `<Sprite :texture="'player'" :x="240" :y="135" @create="onCreate">` (centro del canvas 480×270). Togliere `width/height/fillColor` (lo Sprite prende dimensione dalla texture).
 - Aggiornare il tipo del callback `onCreate` da `GameObjects.Rectangle` a `GameObjects.Sprite`. Tutta la logica esistente (`startFollow`, collider con `ObstacleGroup`) resta identica.
-- Su `<Body>` passare esplicitamente `:width="32" :height="48"` per robustezza (non dipendere dall'inferenza dalla texture).
+- Su `<Body>` passare esplicitamente `:width="32" :height="24"` con `:offsetY="40"` per avere il body fisico sui piedi (32×24 invece di 48×64). Pattern standard per top-down 2.5D: la collisione è il "basamento" del personaggio, non tutto il suo ingombro visivo.
 - Vincoli: URL servito da Astro (`/assets/...`, non `/public/...`); `load.image` solo dentro `@preload`; non usare `import` bundler per l'asset.
 - Verifica: il player è una PNG, si muove, collide con i bordi del mondo e con gli ostacoli marroni.
 
 #### Mini-step 2.2 — Animazioni idle + walk
 
-- Spritesheet (es. 4 direzioni × N frame) in `public/assets/player.png` caricato con `scene.load.spritesheet('player', url, { frameWidth: 32, frameHeight: 48 })`.
+- Spritesheet (es. 4 direzioni × N frame) in `public/assets/player.png` caricato con `scene.load.spritesheet('player', url, { frameWidth: 48, frameHeight: 64 })`.
 - Definire animazioni Phaser in `@create` della scena con `scene.anims.create({ key, frames, frameRate, repeat })` (es. `idle-down`, `walk-down`, ecc.).
 - In `Player.vue` selezionare animazione in base a velocità+direzione (computed o effect su `velocityX/Y`) e usarla via prop `:play="animKey"` di `<Sprite>`.
 - Vincoli: registrare animazioni in `scene.anims` (globali), non sull'oggetto Sprite. La prop `play` di phavuer è reattiva.
@@ -100,12 +105,12 @@ Sceglierne **una** e tenerla piccola: il primo prototipo deve essere completabil
 
 - **Riferimento estetico principale**: **Eastward** (Pixpil, 2021).
   - Pixel art ad alto dettaglio, palette ricca (non limitata stile NES), shading "painterly".
-  - Sprite personaggio alti ~3 tile (player ~32×48 px su tile 16×16).
+  - Sprite personaggio alti ~3 tile (player **48×64** px su tile **24×24**).
   - Atmosfere notturne, illuminazione localizzata, profondità tramite Y-sorting.
 
-- **Risoluzione logica**: **640×360** (16:9, ×3 = 1920×1080 pixel-perfect).
-- **Tile size**: **16×16** px.
-- **Player size (placeholder e finale)**: **32×48** px.
+- **Risoluzione logica**: **480×270** (16:9, ×4 = 1920×1080 pixel-perfect; ×2 = 960×540, ×3 = 1440×810). Stesso regime di Eastward, Sea of Stars, Hyper Light Drifter. Più web-friendly di 640×360 perché multiplo intero di tutte le risoluzioni desktop comuni.
+- **Tile size**: **24×24** px.
+- **Player size (placeholder e finale)**: **48×64** px.
 - **Pixel art rendering**: `pixelArt: true` in Phaser, nessun antialiasing.
 
 - **Target piattaforma**: **desktop only** (viewport ≥ 1024×600).
@@ -131,6 +136,18 @@ Sceglierne **una** e tenerla piccola: il primo prototipo deve essere completabil
     - `src/components/DesktopOnly.vue` → fallback per viewport sotto soglia desktop (futuro).
 - Regola: la separazione `game/` vs `components/` segue il **dominio**, non la **tecnologia**. Un `DialogueBox` Tailwind è dominio di gioco e sta in `src/game/ui/`, non in `src/components/`.
 - Test mentale: "se domani buttassi via Astro e mettessi il gioco dentro Electron o un iframe, cosa porterei con me?" → tutto `src/game/` viaggia, `src/components/` no.
+
+### Asset pipeline & cache busting
+
+- **Asset di gioco** (sprite, tilemap, audio, atlas) stanno in `public/assets/<VERSION>/...`, serviti staticamente da Astro. URL pubblico: `/assets/<VERSION>/<file>`.
+- **Perché `public/` e non `import` Vite**: tilemap JSON e texture atlas multi-file referenziano asset accoppiati per path relativo; il bundler hasherebbe i file separatamente rompendo i riferimenti. Inoltre la compressione bundler può alterare colori della pixel art.
+- **Cache busting via versioning di cartella**:
+  - Tutti gli URL passano per `assetUrl(path)` in `src/game/assets.ts`, che prefissa `/assets/<ASSETS_VERSION>/`.
+  - Quando un deploy modifica asset, si **bumpa `ASSETS_VERSION`** (`v1` → `v2`) e si copia la cartella sotto il nuovo nome.
+  - Vantaggi: path stabili dentro una release (atlas/tilemap coerenti), cache busting per definizione, vecchie versioni servite finché esistono in repo (utenti con pagina aperta non vedono asset rotti durante un deploy).
+  - Politica: tenere le ultime 2-3 versioni, eliminare le più vecchie a intervalli.
+- **Single source of truth**: nessuna stringa `/assets/...` hardcoded nel codice. Sempre `assetUrl('player.png')`. Se in futuro cambieremo strategia (hash al build, CDN dedicata, ecc.) si tocca solo `assets.ts`.
+- **In sviluppo**: HMR di Vite/Astro ricarica gli asset al volo, non serve bumpare versione localmente.
 
 ### Input — schema ibrido (da implementare dopo Fase 1 / camera follow)
 

@@ -1,23 +1,20 @@
 <template>
-  <Rectangle
-    :x="640"
-    :y="360"
-    :width="32"
-    :height="48"
-    :fillColor="0x000000"
-    @create="onCreate"
-  >
+  <Sprite texture="player" :play="animKey" :x="480" :y="270" @create="onCreate">
     <Body
+      :width="32"
+      :height="24"
+      :offsetX="8"
+      :offsetY="40"
       :velocityX="velocityX"
       :velocityY="velocityY"
       :collideWorldBounds="true"
     />
-  </Rectangle>
+  </Sprite>
 </template>
 
 <script setup lang="ts">
-import { ref, inject } from "vue";
-import { Rectangle, Body, useScene, onPreUpdate } from "phavuer";
+import { ref, inject, computed } from "vue";
+import { Sprite, Body, useScene, onPreUpdate } from "phavuer";
 import Phaser from "phaser";
 import { ObstacleGroupKey } from "@game/types";
 
@@ -28,6 +25,8 @@ const obstacleGroup = inject(ObstacleGroupKey);
 const velocityX = ref(0);
 const velocityY = ref(0);
 
+const facing = ref<"down" | "up" | "left" | "right">("down");
+
 let cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
 let keys: {
   W: Phaser.Input.Keyboard.Key;
@@ -36,15 +35,20 @@ let keys: {
   D: Phaser.Input.Keyboard.Key;
 } | null = null;
 
-const onCreate = (rect: Phaser.GameObjects.Rectangle) => {
+const animKey = computed(() => {
+  const moving = velocityX.value !== 0 || velocityY.value !== 0;
+  return `${moving ? "walk" : "idle"}-${facing.value}`;
+});
+
+const onCreate = (sprite: Phaser.GameObjects.Sprite) => {
   if (scene.input.keyboard) {
     cursors = scene.input.keyboard.createCursorKeys();
     keys = scene.input.keyboard.addKeys("W,A,S,D") as NonNullable<typeof keys>;
   }
-  scene.cameras.main.startFollow(rect, true, 1, 1);
+  scene.cameras.main.startFollow(sprite, true, 1, 1);
 
   if (obstacleGroup?.value) {
-    scene.physics.add.collider(rect, obstacleGroup.value);
+    scene.physics.add.collider(sprite, obstacleGroup.value);
   }
 };
 
@@ -63,6 +67,12 @@ onPreUpdate(() => {
 
     velocityX.value = vec.x * SPEED;
     velocityY.value = vec.y * SPEED;
+
+    // Diagonal movement makes facing sideways
+    if (vec.x < 0) facing.value = "left";
+    else if (vec.x > 0) facing.value = "right";
+    else if (vec.y < 0) facing.value = "up";
+    else if (vec.y > 0) facing.value = "down";
   }
 });
 </script>

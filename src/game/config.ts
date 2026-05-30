@@ -3,8 +3,8 @@ import Phaser from "phaser";
 const tailwindStyles = getComputedStyle(document.documentElement);
 
 export const gameConfig = {
-  width: 640,
-  height: 360,
+  width: 480,
+  height: 270,
   pixelArt: true,
   roundPixels: true,
   antialias: false,
