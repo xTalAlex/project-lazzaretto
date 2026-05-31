@@ -8,3 +8,6 @@ import type { GameObjects, Tilemaps } from "phaser";
 export const WallsLayerKey: InjectionKey<
   ShallowRef<Tilemaps.TilemapLayer | Tilemaps.TilemapGPULayer | null>
 > = Symbol("WallsLayer");
+
+export const NpcGroupKey: InjectionKey<ShallowRef<GameObjects.Group | null>> =
+  Symbol("NpcGroup");

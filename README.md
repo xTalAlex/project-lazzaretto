@@ -75,11 +75,30 @@ A questo punto si possono aggiungere contenuti senza rifare l'architettura.
 
 ### Fase 3 — Prima "stanza" tematica
 
-Obiettivo: tradurre l'idea (Milano 1600, peste) in un primo ambiente giocabile.
+Obiettivo: tradurre l'idea (Milano 1600, peste) in un primo ambiente giocabile. Spezzata in mini-step incrementali, ognuno verificabile a schermo.
 
-- Una piazza/vicolo come tilemap (placeholder grafici anche da [Kenney.nl](https://kenney.nl/assets) free).
-- Il Medico della Peste come player sprite (anche solo silhouette con maschera a becco).
-- 1–2 NPC fermi con cui interagire premendo un tasto → trigger evento.
+#### Mini-step 3.1 — Mappa "village" v0 ✅
+
+Mappa Tiled in `public/assets/v0/maps/map0.tmj` con due layer: `Ground` (pavimento, no collision) e `Walls` (muri/edifici, collision). Tileset embedded da `tilesets/village/{ground,wall}.png`.
+
+#### Mini-step 3.2 — Layer di decorazioni / props
+
+Aggiungere in Tiled un terzo layer `Props` (lampioni, casse, alberi, sconces) sopra `Walls`. Tileset `tilesets/village/props.png` (+ `roofs.png` se serve). Decisione: collision sì/no per tile dei props (probabilmente sì per oggetti ingombranti, no per dettagli a terra). I tileset ground attuali (Hypnobius autotile A2) restano imprecisi — accettato come tradeoff per non bloccare il flow.
+
+#### Mini-step 3.3 — Primi NPC fermi 🚧
+
+- Componente `src/game/entities/NPC.vue`: `<Sprite>` + `<StaticBody>` (immobile), props `{ texture, x, y, facing }`.
+- `NpcGroupKey` (`InjectionKey<ShallowRef<GameObjects.Group | null>>`) in `src/game/types.ts`: la scena crea il group nel `@preload` e lo `provide`, ogni NPC vi si auto-aggiunge nel proprio `@create`.
+- Caricamento spritesheet parametrico nella scena: array `CHARACTERS = ["player", "chef", "archrat"]`, ciclo su `scene.load.spritesheet`.
+- Registrazione animazioni parametrica: helper `registerCharacterAnims(scene, textureKey)` con chiavi `idle-${textureKey}-${dir}` / `walk-${textureKey}-${dir}`. Player aggiornato a `${state}-player-${facing}`.
+- Collider unico Player↔Group: `scene.physics.add.collider(playerSprite, npcGroup.value)` accetta un Group e collide con tutti i membri presenti e futuri — niente lista da mantenere.
+- **Y-sorting**: in vista top-down 2.5D Phaser non ordina automaticamente per profondità. Convenzione: `sprite.setDepth(sprite.y)`. Per il player ogni frame in `onPreUpdate`, per gli NPC una volta in `@create`. Tilemap layer restano a depth 0.
+
+#### Mini-step 3.4 — Interazione "premi E" sugli NPC
+
+- Ogni NPC espone una distanza di interazione (es. ≤48 px).
+- Player con tasto `E` cerca l'NPC più vicino entro soglia → `console.log("interagisco con chef")` come placeholder.
+- Sarà il gancio per il sistema di dialoghi di Fase 4 (event bus `dialogue:start`).
 
 ### Fase 4 — Sistema di dialoghi (UI Vue)
 

@@ -21,11 +21,12 @@
 import { ref, inject, computed } from "vue";
 import { Sprite, Body, useScene, onPreUpdate } from "phavuer";
 import Phaser from "phaser";
-import { WallsLayerKey } from "@game/types";
+import { WallsLayerKey, NpcGroupKey } from "@game/types";
 
 const SPEED = 250;
 const scene = useScene();
 const wallsLayer = inject(WallsLayerKey);
+const npcGroup = inject(NpcGroupKey);
 
 const facing = ref<"down" | "up" | "left" | "right">("down");
 const moving = ref(false);
@@ -41,7 +42,7 @@ let playerSprite: Phaser.GameObjects.Sprite | null = null;
 let playerBody: Phaser.Physics.Arcade.Body | null = null;
 
 const animKey = computed(
-  () => `${moving.value ? "walk" : "idle"}-${facing.value}`,
+  () => `${moving.value ? "walk" : "idle"}-player-${facing.value}`,
 );
 
 const onSpriteCreate = (sprite: Phaser.GameObjects.Sprite) => {
@@ -56,12 +57,14 @@ const onSpriteCreate = (sprite: Phaser.GameObjects.Sprite) => {
 const onBodyCreate = (body: Phaser.Physics.Arcade.Body) => {
   playerBody = body;
   if (playerSprite && wallsLayer?.value) {
-    scene.physics.add.collider(playerSprite, wallsLayer.value);
+    wallsLayer?.value &&
+      scene.physics.add.collider(playerSprite, wallsLayer.value);
+    npcGroup?.value && scene.physics.add.collider(playerSprite, npcGroup.value);
   }
 };
 
 onPreUpdate(() => {
-  if (cursors && keys && playerBody) {
+  if (cursors && keys && playerBody && playerSprite) {
     const left = cursors.left?.isDown || keys.A.isDown;
     const right = cursors.right?.isDown || keys.D.isDown;
     const up = cursors.up?.isDown || keys.W.isDown;
@@ -81,6 +84,9 @@ onPreUpdate(() => {
     else if (vec.x > 0) facing.value = "right";
     else if (vec.y < 0) facing.value = "up";
     else if (vec.y > 0) facing.value = "down";
+
+    // Depth sorting by y coordinate
+    playerSprite.setDepth(playerSprite.y);
   }
 });
 </script>
