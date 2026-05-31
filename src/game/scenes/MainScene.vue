@@ -23,10 +23,10 @@ const wallsLayer = shallowRef<
 provide(WallsLayerKey, wallsLayer);
 
 const onScenePreload = (scene: PhaserScene) => {
-  scene.load.image("tiles-ground", assetUrl("medieval-village/ground.png"));
-  scene.load.image("tiles-wall", assetUrl("medieval-village/wall.png"));
+  scene.load.image("tiles-ground", assetUrl("tilesets/village/ground.png"));
+  scene.load.image("tiles-wall", assetUrl("tilesets/village/wall.png"));
   scene.load.tilemapTiledJSON("map0", assetUrl("maps/map0.tmj"));
-  scene.load.spritesheet("player", assetUrl("player.png"), {
+  scene.load.spritesheet("player", assetUrl("sprites/player.png"), {
     frameWidth: 48,
     frameHeight: 64,
   });
