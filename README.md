@@ -81,18 +81,39 @@ Obiettivo: tradurre l'idea (Milano 1600, peste) in un primo ambiente giocabile. 
 
 Mappa Tiled in `public/assets/v0/maps/map0.tmj` con due layer: `Ground` (pavimento, no collision) e `Walls` (muri/edifici, collision). Tileset embedded da `tilesets/village/{ground,wall}.png`.
 
-#### Mini-step 3.2 — Layer di decorazioni / props
+#### Mini-step 3.2 — Layer di decorazioni / props ✅
 
-Aggiungere in Tiled un terzo layer `Props` (lampioni, casse, alberi, sconces) sopra `Walls`. Tileset `tilesets/village/props.png` (+ `roofs.png` se serve). Decisione: collision sì/no per tile dei props (probabilmente sì per oggetti ingombranti, no per dettagli a terra). I tileset ground attuali (Hypnobius autotile A2) restano imprecisi — accettato come tradeoff per non bloccare il flow.
+Convenzione **fissata**: ogni mappa ha lo stesso set di **5 tile layer** (e in futuro N object layer). La struttura non cambia mappa per mappa, cambia solo il contenuto.
 
-#### Mini-step 3.3 — Primi NPC fermi 🚧
+| Layer Tiled | Tileset  | Collision | Depth render                | Cosa ci va                                |
+| ----------- | -------- | --------- | --------------------------- | ----------------------------------------- |
+| `Ground`    | `ground` | no        | 0 (sotto entità)            | terreno, sentieri, tappeti                |
+| `Walls`     | `wall`   | **sì**    | 0                           | pareti frontali, recinti, perimetro mondo |
+| `PropsLow`  | `props`  | **sì**    | 0                           | basi alberi, casse, barili, lampione base |
+| `PropsHigh` | `props`  | no        | `HIGH_DEPTH` (sopra entità) | chioma alberi, cima lampione, sconces     |
+| `Roofs`     | `roofs`  | no        | `HIGH_DEPTH`                | tetti (player ci passa sotto)             |
+
+**Principio**: collision e depth sono **dimensioni indipendenti**. Un albero alto 96px → tronco in `PropsLow` (collidi, sotto), chioma in `PropsHigh` (no collisione, sopra). Il player con `depth = y` si infila in mezzo e il y-sorting fa il resto.
+
+**Architettura codice** (refactor centrato su `MainScene.vue`):
+
+- Array `TILE_LAYERS` dichiarativo: `{ name, tileset, collides, depth }` per ognuno dei 5 layer. Aggiungere/rimuovere un layer = modificare l'array, niente blocchi `if` ripetuti.
+- Loader tileset deduplicato (es. `props.png` usato sia da `PropsLow` che `PropsHigh`, caricato una volta).
+- Scene popola `solidLayers` (un singolo `ShallowRef<TilemapLayer[]>` provided via `SolidLayersKey`), che raccoglie tutti i layer collidibili. Le entità iterano e registrano un collider per layer.
+- Sostituisce il pattern precedente "un `InjectionKey` per layer" (era `WallsLayerKey + PropsLayerKey + …`) che non scalava.
+- Warning in console se un layer dichiarato non esiste nella `.tmj` (utile quando si crea una mappa nuova e si dimentica un layer).
+
+**Layer object** (`Triggers`, `Spawns`) verranno aggiunti in Fase 3.4+ per porte e spawn point, come **object layer Tiled** (non tile layer), letti con `map.getObjectLayer(...)`. Non interferiscono con depth/collision dei tile layer.
+
+#### Mini-step 3.3 — Primi NPC fermi ✅
 
 - Componente `src/game/entities/NPC.vue`: `<Sprite>` + `<StaticBody>` (immobile), props `{ texture, x, y, facing }`.
 - `NpcGroupKey` (`InjectionKey<ShallowRef<GameObjects.Group | null>>`) in `src/game/types.ts`: la scena crea il group nel `@preload` e lo `provide`, ogni NPC vi si auto-aggiunge nel proprio `@create`.
 - Caricamento spritesheet parametrico nella scena: array `CHARACTERS = ["player", "chef", "archrat"]`, ciclo su `scene.load.spritesheet`.
 - Registrazione animazioni parametrica: helper `registerCharacterAnims(scene, textureKey)` con chiavi `idle-${textureKey}-${dir}` / `walk-${textureKey}-${dir}`. Player aggiornato a `${state}-player-${facing}`.
 - Collider unico Player↔Group: `scene.physics.add.collider(playerSprite, npcGroup.value)` accetta un Group e collide con tutti i membri presenti e futuri — niente lista da mantenere.
-- **Y-sorting**: in vista top-down 2.5D Phaser non ordina automaticamente per profondità. Convenzione: `sprite.setDepth(sprite.y)`. Per il player ogni frame in `onPreUpdate`, per gli NPC una volta in `@create`. Tilemap layer restano a depth 0.
+- **Y-sorting**: in vista top-down 2.5D Phaser non ordina automaticamente per profondità. Convenzione: `sprite.setDepth(sprite.y)`. Per il player ogni frame in `onPreUpdate`, per gli NPC una volta in `@create`. Tile layer "bassi" restano a depth 0, tile layer "alti" (Roofs, PropsHigh) a `HIGH_DEPTH = 10000`.
+- **Bordo mappa**: NON usare `collideWorldBounds` come confine visivo. Il body è sui piedi (offsetY=40) → sui bordi superiori la "testa" esce dal mondo. Soluzione: dipingere muri sul perimetro della mappa in `Walls`.
 
 #### Mini-step 3.4 — Interazione "premi E" sugli NPC
 
@@ -109,7 +130,35 @@ Obiettivo: integrare UI Vue con la scena Phaser. Punto in cui Phavuer dà il mas
 - Dati dialoghi in `src/game/data/dialogues.ts` (JSON tipizzato).
 - Citazioni dai Promessi Sposi per sceneggiare scene memorabili (l'incontro coi bravi, la madre di Cecilia, ecc.).
 
-### Fase 5 — Meccaniche di core gameplay
+### Fase 5 — Movimento NPC
+
+Obiettivo: rendere il mondo vivo. NPC che camminano per la mappa.
+
+- Object layer Tiled `Spawns` con waypoint per ogni NPC (`patrol: Vec2[]`).
+- NPC passa da `StaticBody` a `DynamicBody`; aggiunto collider NPC↔`solidLayers` e NPC↔NPC.
+- Stato interno: `idle | walking | talking`. Durante `talking` si ferma e guarda il player.
+- `onPreUpdate` interno all'NPC: muove verso il prossimo waypoint, aggiorna `facing` e `animKey` come il player, fa `setDepth(sprite.y)` ogni frame.
+- Sblocca il **monatto** errante (prerequisito audio spaziale dei campanacci, Fase 6).
+
+### Fase 6 — Audio (pipeline + ambient + SFX)
+
+Obiettivo: introdurre l'audio nel gioco, sia ambient che reattivo.
+
+- Pipeline audio in `MainScene.onScenePreload`: `scene.load.audio(key, [...])`.
+- **Passi del player**: timer 350ms in `onPreUpdate` quando `moving === true`, alterna `step1.wav`/`step2.wav`. Variante: leggere la tile sotto i piedi (`groundLayer.getTileAtWorldXY`) per scegliere il sample (grass/stone/wood).
+- **Musica ambient**: track barocca / canti gregoriani in loop a volume basso (~0.3). Asset da fonti CC0/CC-BY (Musopen per barocco di pubblico dominio, archive.org per gregoriani).
+- **Campanacci dei monatti**: suono spaziale legato all'NPC monatto in movimento. Volume modulato dalla distanza player↔monatto (oppure `WebAudio PannerNode` per stereo posizionale). Effetto atmosferico chiave.
+
+### Fase 7 — Ciclo giorno/notte + gargoyle attivo
+
+Obiettivo: introdurre tempo di gioco come dimensione, con effetti su rendering e gameplay.
+
+- Variabile globale `timeOfDay` (0–24h) avanza con `scene.time` (es. 1 minuto reale = 1 ora di gioco).
+- Overlay grafico full-screen con tint blu notte modulato da `timeOfDay`.
+- Lampade/lanterne come sprite con sorgenti di luce additive di notte.
+- **Gargoyle**: statua immobile di giorno (sprite `gargoyle.png`, NPC con `interactable: false`), di notte diventa NPC parlante (`facing` animato, dialogo attivo). Lega Fase 4 + Fase 5 + ciclo giorno/notte.
+
+### Fase 8 — Meccaniche di core gameplay
 
 Qui si decide **che tipo di gioco** è. Opzioni coerenti col tema:
 
