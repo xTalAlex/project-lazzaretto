@@ -121,7 +121,7 @@ Convenzione **fissata**: ogni mappa ha lo stesso set di **5 tile layer** (e in f
 - Composable `src/game/composables/useInteraction.ts`:
   - inietta `NpcGroupKey`, registra il key con `getActionKey`.
   - in `onPreUpdate`, su `Phaser.Input.Keyboard.JustDown(key)` (edge-trigger, no spam a 60fps), trova lo sprite NPC più vicino entro `INTERACTION_RANGE = 48`px e logga `[interact] <texture.key>`.
-  - API: `useInteraction(getPlayerPos: () => {x,y})`. La **callback** (non un valore) permette di leggere la posizione *attuale* del player ogni frame, mantenendo il composable agnostico rispetto al tipo concreto (Sprite, Container, ecc.) → interface segregation: dipendi dal contratto minimo.
+  - API: `useInteraction(getPlayerPos: () => {x,y})`. La **callback** (non un valore) permette di leggere la posizione _attuale_ del player ogni frame, mantenendo il composable agnostico rispetto al tipo concreto (Sprite, Container, ecc.) → interface segregation: dipendi dal contratto minimo.
 - Player aggancia il composable a livello top dello `<script setup>` (regola Vue: composables vanno sincroni nel setup, mai dentro handler async).
 - Sarà il gancio per il sistema di dialoghi di Fase 4 (event bus `dialogue:start`).
 
@@ -131,8 +131,14 @@ Obiettivo: integrare UI Vue con la scena Phaser. Punto in cui Phavuer dà il mas
 
 - Event bus: la scena emette `dialogue:start` con un payload.
 - Componente Vue `<DialogueBox>` nel HUD che ascolta e mostra il testo.
-- Dati dialoghi in `src/game/data/dialogues.ts` (JSON tipizzato).
+- Dati dialoghi gestiti via **vue-i18n** in `src/game/i18n/<locale>/dialogues.ts` (Modello A: namespace `game` + `site` separati, mergiati in unico `createI18n`).
 - Citazioni dai Promessi Sposi per sceneggiare scene memorabili (l'incontro coi bravi, la madre di Cecilia, ecc.).
+
+**Polish (dopo MVP funzionante):**
+
+- **NPC si gira verso il player quando parla**: salvare `facing` originale all'inizio del dialogo, calcolare la direzione opposta al vettore NPC→Player, ripristinare `facing` originale a `dialogue:end`. L'NPC espone un'API reattiva su `facing` (già prop, va promosso a stato interno).
+- **Indicatore "parlami"**: piccolo sprite/icona (es. "E" in cerchio, o `…` lampeggiante) sopra la testa dell'NPC quando il player è entro `INTERACTION_RANGE`. Renderizzato come figlio dell'NPC con offset `y - 40`, visibilità reattiva. Probabilmente conviene un composable `useInteractionHint` che traccia il player più vicino.
+- **Indicatore "sta parlando questo NPC"**: piccola freccia/triangolo sopra l'NPC attivo durante il dialogo. **Non un fumetto** perché (1) il box bottom è già nostro contenitore principale, leggibile e stabile (lo speaker è chiaro dal nome), (2) i fumetti costringono il testo a inseguire l'NPC in pan/zoom della camera, problema di leggibilità, (3) i fumetti richiedono layout dinamico per evitare overlap con muri/altri NPC. La freccia è ancoraggio leggero senza i contro.
 
 ### Fase 5 — Movimento NPC
 

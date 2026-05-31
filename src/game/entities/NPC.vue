@@ -17,6 +17,7 @@ import { Sprite, StaticBody } from "phavuer";
 import { NpcGroupKey } from "@game/types";
 
 const props = defineProps<{
+  id: string;
   texture: string;
   x: number;
   y: number;
@@ -28,6 +29,7 @@ const animKey = computed(() => `idle-${props.texture}-${props.facing}`);
 
 const onSpriteCreate = (sprite: Phaser.GameObjects.Sprite) => {
   npcGroup?.value?.add(sprite);
+  sprite.setData("npcId", props.id);
   sprite.setDepth(sprite.y);
 };
 </script>

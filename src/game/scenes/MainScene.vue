@@ -6,9 +6,15 @@
     v-slot="{ preloaded }"
   >
     <template v-if="preloaded">
-      <NPC texture="chef" :x="1500" :y="350" facing="down" />
+      <NPC id="chef-001" texture="chef" :x="1500" :y="350" facing="down" />
 
-      <NPC texture="archrat" :x="300" :y="250" facing="right" />
+      <NPC
+        id="archrat-001"
+        texture="archrat"
+        :x="300"
+        :y="250"
+        facing="right"
+      />
 
       <Player />
     </template>

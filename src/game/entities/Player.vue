@@ -23,11 +23,13 @@ import { Sprite, Body, useScene, onPreUpdate } from "phavuer";
 import Phaser from "phaser";
 import { SolidLayersKey, NpcGroupKey } from "@game/types";
 import { useInteraction } from "@game/composables/useInteraction";
+import { useGameMode } from "@game/composables/useGameMode";
 
 const SPEED = 250;
 const scene = useScene();
 const solidLayers = inject(SolidLayersKey);
 const npcGroup = inject(NpcGroupKey);
+const { mode } = useGameMode();
 
 useInteraction(() => ({
   x: playerSprite?.x ?? 0,
@@ -74,27 +76,32 @@ const onBodyCreate = (body: Phaser.Physics.Arcade.Body) => {
 
 onPreUpdate(() => {
   if (cursors && keys && playerBody && playerSprite) {
-    const left = cursors.left?.isDown || keys.A.isDown;
-    const right = cursors.right?.isDown || keys.D.isDown;
-    const up = cursors.up?.isDown || keys.W.isDown;
-    const down = cursors.down?.isDown || keys.S.isDown;
+    if (mode.value === "explore") {
+      const left = cursors.left?.isDown || keys.A.isDown;
+      const right = cursors.right?.isDown || keys.D.isDown;
+      const up = cursors.up?.isDown || keys.W.isDown;
+      const down = cursors.down?.isDown || keys.S.isDown;
 
-    const vec = new Phaser.Math.Vector2(
-      (right ? 1 : 0) - (left ? 1 : 0),
-      (down ? 1 : 0) - (up ? 1 : 0),
-    );
-    if (vec.length() > 0) vec.normalize();
+      const vec = new Phaser.Math.Vector2(
+        (right ? 1 : 0) - (left ? 1 : 0),
+        (down ? 1 : 0) - (up ? 1 : 0),
+      );
+      if (vec.length() > 0) vec.normalize();
 
-    playerBody.setVelocity(vec.x * SPEED, vec.y * SPEED);
-    moving.value = vec.length() > 0;
+      playerBody.setVelocity(vec.x * SPEED, vec.y * SPEED);
+      moving.value = vec.length() > 0;
 
-    // Diagonal movement makes facing sideways
-    if (vec.x < 0) facing.value = "left";
-    else if (vec.x > 0) facing.value = "right";
-    else if (vec.y < 0) facing.value = "up";
-    else if (vec.y > 0) facing.value = "down";
+      // Diagonal movement makes facing sideways
+      if (vec.x < 0) facing.value = "left";
+      else if (vec.x > 0) facing.value = "right";
+      else if (vec.y < 0) facing.value = "up";
+      else if (vec.y > 0) facing.value = "down";
+    } else {
+      playerBody.setVelocity(0, 0);
+      moving.value = false;
+    }
 
-    // Depth sorting by y coordinate
+    // Depth sorting by y coordinate (always, even while talking)
     playerSprite.setDepth(playerSprite.y);
   }
 });
