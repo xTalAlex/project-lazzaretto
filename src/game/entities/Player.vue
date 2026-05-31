@@ -8,9 +8,9 @@
   >
     <Body
       :width="32"
-      :height="24"
+      :height="12"
       :offsetX="8"
-      :offsetY="40"
+      :offsetY="52"
       :collideWorldBounds="true"
       @create="onBodyCreate"
     />
@@ -21,11 +21,11 @@
 import { ref, inject, computed } from "vue";
 import { Sprite, Body, useScene, onPreUpdate } from "phavuer";
 import Phaser from "phaser";
-import { WallsLayerKey, NpcGroupKey } from "@game/types";
+import { SolidLayersKey, NpcGroupKey } from "@game/types";
 
 const SPEED = 250;
 const scene = useScene();
-const wallsLayer = inject(WallsLayerKey);
+const solidLayers = inject(SolidLayersKey);
 const npcGroup = inject(NpcGroupKey);
 
 const facing = ref<"down" | "up" | "left" | "right">("down");
@@ -56,10 +56,13 @@ const onSpriteCreate = (sprite: Phaser.GameObjects.Sprite) => {
 
 const onBodyCreate = (body: Phaser.Physics.Arcade.Body) => {
   playerBody = body;
-  if (playerSprite && wallsLayer?.value) {
-    wallsLayer?.value &&
-      scene.physics.add.collider(playerSprite, wallsLayer.value);
-    npcGroup?.value && scene.physics.add.collider(playerSprite, npcGroup.value);
+  if (playerSprite) {
+    solidLayers?.value.forEach((layer) => {
+      if (playerSprite) scene.physics.add.collider(playerSprite, layer);
+    });
+    if (npcGroup?.value) {
+      scene.physics.add.collider(playerSprite, npcGroup.value);
+    }
   }
 };
 
