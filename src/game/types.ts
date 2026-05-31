@@ -2,6 +2,13 @@ import type { InjectionKey, ShallowRef } from "vue";
 import type { GameObjects, Tilemaps } from "phaser";
 
 // ---------------------------------------------------------------------------
+// Shared domain types
+// ---------------------------------------------------------------------------
+
+/** 4-way facing direction. Order matches sprite sheet rows 0..3. */
+export type Direction = "up" | "right" | "down" | "left";
+
+// ---------------------------------------------------------------------------
 // Vue InjectionKey — shared state across scene/entities
 // ---------------------------------------------------------------------------
 

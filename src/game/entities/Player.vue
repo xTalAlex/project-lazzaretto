@@ -18,26 +18,44 @@
 </template>
 
 <script setup lang="ts">
-import { ref, inject, computed } from "vue";
+import { ref, inject, computed, onUnmounted } from "vue";
 import { Sprite, Body, useScene, onPreUpdate } from "phavuer";
 import Phaser from "phaser";
-import { SolidLayersKey, NpcGroupKey } from "@game/types";
+import { SolidLayersKey, NpcGroupKey, type Direction } from "@game/types";
+import { bus } from "@game/events";
 import { useInteraction } from "@game/composables/useInteraction";
 import { useGameMode } from "@game/composables/useGameMode";
+import { usePlayerPosition } from "@game/composables/usePlayerPosition";
+import { useDialogueSource } from "@game/composables/useDialogueSource";
+import { directionTowards } from "@game/utils/direction";
 
 const SPEED = 250;
 const scene = useScene();
 const solidLayers = inject(SolidLayersKey);
 const npcGroup = inject(NpcGroupKey);
 const { mode } = useGameMode();
+const { setPosition } = usePlayerPosition();
+const { source: dialogueSource } = useDialogueSource();
 
-useInteraction(() => ({
-  x: playerSprite?.x ?? 0,
-  y: playerSprite?.y ?? 0,
-}));
+useInteraction();
 
-const facing = ref<"down" | "up" | "left" | "right">("down");
+const facing = ref<Direction>("down");
 const moving = ref(false);
+
+const offDialogueStart = bus.on("dialogue:start", () => {
+  if (playerSprite && dialogueSource.value) {
+    facing.value = directionTowards(
+      playerSprite.x,
+      playerSprite.y,
+      dialogueSource.value.x,
+      dialogueSource.value.y,
+    );
+  }
+});
+
+onUnmounted(() => {
+  offDialogueStart();
+});
 
 const animKey = computed(
   () => `${moving.value ? "walk" : "idle"}-player-${facing.value}`,
@@ -103,6 +121,9 @@ onPreUpdate(() => {
 
     // Depth sorting by y coordinate (always, even while talking)
     playerSprite.setDepth(playerSprite.y);
+
+    // Publish position for other systems (NPCs, dialogue, hints)
+    setPosition(playerSprite.x, playerSprite.y);
   }
 });
 </script>
