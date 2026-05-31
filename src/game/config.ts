@@ -22,4 +22,10 @@ export const gameConfig = {
   },
 };
 
+export const KEYBINDINGS = {
+  interact: "E",
+} as const;
+
+export type ActionKey = keyof typeof KEYBINDINGS;
+
 export default gameConfig;

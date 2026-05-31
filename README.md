@@ -115,10 +115,14 @@ Convenzione **fissata**: ogni mappa ha lo stesso set di **5 tile layer** (e in f
 - **Y-sorting**: in vista top-down 2.5D Phaser non ordina automaticamente per profondità. Convenzione: `sprite.setDepth(sprite.y)`. Per il player ogni frame in `onPreUpdate`, per gli NPC una volta in `@create`. Tile layer "bassi" restano a depth 0, tile layer "alti" (Roofs, PropsHigh) a `HIGH_DEPTH = 10000`.
 - **Bordo mappa**: NON usare `collideWorldBounds` come confine visivo. Il body è sui piedi (offsetY=40) → sui bordi superiori la "testa" esce dal mondo. Soluzione: dipingere muri sul perimetro della mappa in `Walls`.
 
-#### Mini-step 3.4 — Interazione "premi E" sugli NPC
+#### Mini-step 3.4 — Interazione "premi E" sugli NPC ✅
 
-- Ogni NPC espone una distanza di interazione (es. ≤48 px).
-- Player con tasto `E` cerca l'NPC più vicino entro soglia → `console.log("interagisco con chef")` come placeholder.
+- Tasto azione **configurabile** via `KEYBINDINGS` in `src/game/input.ts` (default `E`). Helper `getActionKey(scene, action)` astrae il lookup → call site non hardcodano nomi tasto. Aggancio futuro per menu opzioni / rebind (Fase 8).
+- Composable `src/game/composables/useInteraction.ts`:
+  - inietta `NpcGroupKey`, registra il key con `getActionKey`.
+  - in `onPreUpdate`, su `Phaser.Input.Keyboard.JustDown(key)` (edge-trigger, no spam a 60fps), trova lo sprite NPC più vicino entro `INTERACTION_RANGE = 48`px e logga `[interact] <texture.key>`.
+  - API: `useInteraction(getPlayerPos: () => {x,y})`. La **callback** (non un valore) permette di leggere la posizione *attuale* del player ogni frame, mantenendo il composable agnostico rispetto al tipo concreto (Sprite, Container, ecc.) → interface segregation: dipendi dal contratto minimo.
+- Player aggancia il composable a livello top dello `<script setup>` (regola Vue: composables vanno sincroni nel setup, mai dentro handler async).
 - Sarà il gancio per il sistema di dialoghi di Fase 4 (event bus `dialogue:start`).
 
 ### Fase 4 — Sistema di dialoghi (UI Vue)

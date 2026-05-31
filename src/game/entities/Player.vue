@@ -22,14 +22,24 @@ import { ref, inject, computed } from "vue";
 import { Sprite, Body, useScene, onPreUpdate } from "phavuer";
 import Phaser from "phaser";
 import { SolidLayersKey, NpcGroupKey } from "@game/types";
+import { useInteraction } from "@game/composables/useInteraction";
 
 const SPEED = 250;
 const scene = useScene();
 const solidLayers = inject(SolidLayersKey);
 const npcGroup = inject(NpcGroupKey);
 
+useInteraction(() => ({
+  x: playerSprite?.x ?? 0,
+  y: playerSprite?.y ?? 0,
+}));
+
 const facing = ref<"down" | "up" | "left" | "right">("down");
 const moving = ref(false);
+
+const animKey = computed(
+  () => `${moving.value ? "walk" : "idle"}-player-${facing.value}`,
+);
 
 let cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
 let keys: {
@@ -40,10 +50,6 @@ let keys: {
 } | null = null;
 let playerSprite: Phaser.GameObjects.Sprite | null = null;
 let playerBody: Phaser.Physics.Arcade.Body | null = null;
-
-const animKey = computed(
-  () => `${moving.value ? "walk" : "idle"}-player-${facing.value}`,
-);
 
 const onSpriteCreate = (sprite: Phaser.GameObjects.Sprite) => {
   playerSprite = sprite;
