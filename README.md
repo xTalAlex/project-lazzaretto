@@ -7,6 +7,9 @@
 - Il gioco conterrà grossi riferimenti ai Promessi Sposi.
 - Lo stile grafico sarà in pixel art.
 - La prospettiva sarà 2.5D.
+- Gargoyle come secondary character (magari come companion). Con abilità che si attivano durante la notte
+- Suoni campanacci dei monatti che si attivano durante specifici periodi per segnalare eventi
+- Musiche stila barocco e canti gregoriani ( https://www.youtube.com/watch?v=TZbggKAsoo4 2:35)
 
 ## Roadmap di sviluppo
 
